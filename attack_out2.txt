@@ -1,0 +1,6 @@
+event: response.created
+data: {"response":{"id":"resp_4c432909-693f-4a35-82be-57bbd563265b","model":"public-ciallo","object":"response","status":"in_progress"},"type":"response.created"}
+
+event: response.in_progress
+data: {"response":{"id":"resp_4c432909-693f-4a35-82be-57bbd563265b","model":"public-ciallo","object":"response","status":"in_progress"},"type":"response.in_progress"}
+

@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChatAPI</title>
+  <style>
+    /* 基础重置 */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body,
+    html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #08090b;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* 宇宙深邃感背景 */
+    .hero-section {
+      position: relative;
+      width: 100%;
+      height: 100dvh;
+      background: radial-gradient(circle at center, #14161d 0%, #07080a 70%, #020203 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      z-index: 1;
+    }
+
+    .bottom-link {
+      position: absolute;
+      left: 50%;
+      bottom: calc(env(safe-area-inset-bottom) + 14px);
+      transform: translateX(-50%);
+      z-index: 4;
+      color: rgba(255, 255, 255, 0.34);
+      font-size: 0.75rem;
+      line-height: 1;
+      text-decoration: none;
+      letter-spacing: 0.2px;
+      transition: color 0.2s ease;
+      user-select: none;
+    }
+
+    .bottom-link:hover {
+      color: rgba(255, 255, 255, 0.58);
+    }
+
+    .bottom-link:focus-visible {
+      color: rgba(255, 255, 255, 0.58);
+      outline: none;
+    }
+
+    /* 动态粒子画布层 */
+    #particleCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    /* 文本与交互内容容器 */
+    .hero-content {
+      position: relative;
+      z-index: 3;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 800px;
+      padding: 0 24px;
+    }
+
+    /* 标题：加粗 + 流动金属光泽动效 */
+    .hero-title {
+      font-size: 3rem;
+      font-weight: 600;
+      /* 加粗字体 */
+      letter-spacing: 10px;
+      margin-bottom: 24px;
+
+      /* 流动材质感渐变底色 */
+      background: linear-gradient(90deg, #ffffff 0%, #cbd5e1 25%, #ffffff 50%, #64748b 75%, #ffffff 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      color: transparent;
+
+      /* 光泽流动动画 */
+      animation: shine 4s linear infinite;
+      filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+    }
+
+    @keyframes shine {
+      to {
+        background-position: -200% center;
+      }
+    }
+
+    /* 副标题 */
+    .hero-subtitle {
+      font-size: 0.85rem;
+      letter-spacing: 7px;
+      color: #525866;
+      text-transform: uppercase;
+      font-weight: 500;
+      margin-left: 7px;
+      margin-bottom: 48px;
+    }
+
+    /* --- 新增：类图片布局的中枢控制模块 --- */
+    .api-panel {
+      width: 100%;
+      max-width: 680px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInAndUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation-delay: 0.3s;
+    }
+
+    /* 胶囊地址栏 */
+    .url-bar {
+      width: 100%;
+      height: 58px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 29px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 28px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow:
+        0 4px 30px rgba(0, 0, 0, 0.4),
+        inset 0 1px 1px rgba(255, 255, 255, 0.05);
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    .url-bar:hover {
+      border-color: rgba(77, 168, 255, 0.2);
+      box-shadow:
+        0 4px 30px rgba(0, 0, 0, 0.5),
+        0 0 20px rgba(77, 168, 255, 0.05),
+        inset 0 1px 1px rgba(255, 255, 255, 0.05);
+    }
+
+    /* 左侧主域名 */
+    .url-base {
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 1.1rem;
+      font-family: "SF Mono", SFMono-Regular, Consolas, monospace;
+      font-weight: 400;
+      letter-spacing: -0.3px;
+    }
+
+    /* 右侧动态切换区域包装 */
+    .url-switch-zone {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      height: 100%;
+    }
+
+    /* 切换项目视窗：限定宽度、右对齐 */
+    .url-path-window {
+      position: relative;
+      height: 24px;
+      width: 260px;
+      /* 预留足够宽度防止换行 */
+      overflow: hidden;
+    }
+
+    /* 动态生成的路径通用样式 */
+    .url-path {
+      color: #4da8ff;
+      /* 对应原图的高级蓝色 */
+      font-size: 1.1rem;
+      font-family: "SF Mono", SFMono-Regular, Consolas, monospace;
+      font-weight: 500;
+      white-space: nowrap;
+      position: absolute;
+      right: 0;
+      /* 严格右对齐 */
+      top: 0px;
+      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease, filter 0.6s ease;
+      transform: translateY(0);
+      opacity: 1;
+      filter: blur(0);
+    }
+
+    /* 高级感切换动效状态：进场与出场 */
+    .url-path.enter {
+      transform: translateY(20px);
+      opacity: 0;
+      filter: blur(4px);
+      /* 微模糊模拟动态视觉残影 */
+    }
+
+    .url-path.exit {
+      transform: translateY(-20px);
+      opacity: 0;
+      filter: blur(4px);
+    }
+
+    /* 复制按钮 */
+    .copy-btn {
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.35);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s, transform 0.2s;
+      padding: 4px;
+    }
+
+    .copy-btn:hover {
+      color: #4da8ff;
+      transform: scale(1.05);
+    }
+
+    /* 按钮组容器 */
+    .btn-group {
+      display: flex;
+      gap: 16px;
+      margin-top: 8px;
+    }
+
+    /* 通用按钮样式 */
+    .action-btn {
+      height: 44px;
+      padding: 0 28px;
+      border-radius: 22px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      text-decoration: none;
+      letter-spacing: 1px;
+    }
+
+    /* 左侧主按钮：蓝色实心 */
+    .btn-primary {
+      background: #4da8ff;
+      color: #ffffff;
+      border: none;
+      box-shadow: 0 4px 20px rgba(77, 168, 255, 0.25);
+    }
+
+    .btn-primary:hover {
+      background: #3596ff;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(77, 168, 255, 0.4);
+    }
+
+    /* 右侧次按钮：毛玻璃暗色 */
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.04);
+      color: #4da8ff;
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(77, 168, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    /* 入场渐显动画 */
+    @keyframes fadeInAndUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* 移动端适配 */
+    @media (max-width: 768px) {
+      .hero-section {
+        justify-content: flex-start;
+        padding-top: max(calc(env(safe-area-inset-top) + 56px), 12dvh);
+        padding-bottom: calc(env(safe-area-inset-bottom) + 18px);
+      }
+
+      .hero-content {
+        padding: 0 16px;
+      }
+
+      .hero-title {
+        font-size: 1.9rem;
+        letter-spacing: 3px;
+        margin-bottom: 16px;
+      }
+
+      .hero-subtitle {
+        font-size: 0.68rem;
+        letter-spacing: 3px;
+        margin-left: 3px;
+        margin-bottom: 28px;
+        line-height: 1.8;
+      }
+
+      .api-panel {
+        gap: 14px;
+      }
+
+      .url-bar {
+        height: auto;
+        min-height: 46px;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .url-base {
+        font-size: 0.58rem;
+        flex: 1 1 auto;
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-align: left;
+      }
+
+      .url-switch-zone {
+        flex: 0 0 auto;
+        gap: 8px;
+      }
+
+      .url-path,
+      .url-base {
+        font-size: 0.58rem;
+      }
+
+      .url-path-window {
+        width: 112px;
+        height: 18px;
+      }
+
+      .url-path {
+        right: 0;
+        top: 1.5px;
+      }
+
+      .copy-btn {
+        flex: 0 0 auto;
+        padding: 1px;
+      }
+
+      .copy-btn svg {
+        width: 15px;
+        height: 15px;
+      }
+
+      .btn-group {
+        gap: 10px;
+        margin-top: 2px;
+      }
+
+      .action-btn {
+        height: 40px;
+        padding: 0 14px;
+        font-size: 0.82rem;
+        letter-spacing: 0.5px;
+      }
+
+      .bottom-link {
+        bottom: calc(env(safe-area-inset-bottom) + 10px);
+        font-size: 0.7rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="hero-section">
+    <canvas id="particleCanvas"></canvas>
+
+    <div class="hero-content">
+      <h1 class="hero-title">统一的人类中转接口网关</h1>
+      <p class="hero-subtitle">更真实的高峰期延迟，更多来自人类的温暖</br>只需将基址替换为：</p>
+
+      <div class="api-panel">
+        <div class="url-bar">
+          <span class="url-base">https://api.kirari.fun</span>
+          <div class="url-switch-zone">
+            <div class="url-path-window" id="pathWindow">
+              <span class="url-path">/messages</span>
+            </div>
+            <button class="copy-btn" title="复制链接">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="btn-group">
+            <a class="action-btn btn-secondary" href="/help" target="_top">使用教程</a>
+          <a class="action-btn btn-primary" href="/login" target="_top">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+            登录
+          </a>
+          <a class="action-btn btn-secondary" href="/statistics" target="_top">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            统计
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    /**
+     * 1. 动态路径高级切换逻辑
+     */
+    const pathsArray = [
+      '/messages',
+      '/v1/messages',
+      '/responses',
+      '/v1/responses',
+      '/chat/completions',
+      '/v1/chat/completions',
+    ];
+    let currentPathIndex = 0;
+    const pathWindow = document.getElementById('pathWindow');
+
+    function switchApiPath() {
+      // 获取当前显示的节点
+      const currentPathEl = pathWindow.querySelector('.url-path');
+
+      // 计算下一个节点的索引
+      currentPathIndex = (currentPathIndex + 1) % pathsArray.length;
+      const nextPathText = pathsArray[currentPathIndex];
+
+      // 创建新节点并赋予进场状态 (enter)
+      const nextPathEl = document.createElement('span');
+      nextPathEl.className = 'url-path enter';
+      nextPathEl.textContent = nextPathText;
+      pathWindow.appendChild(nextPathEl);
+
+      // 让当前节点触发退场状态 (exit)
+      if (currentPathEl) {
+        currentPathEl.classList.add('exit');
+      }
+
+      // 强行触发重绘，确保过渡动画生效
+      nextPathEl.offsetHeight;
+
+      // 让新节点进入标准可视状态
+      nextPathEl.classList.remove('enter');
+
+      // 动画结束后移除老节点
+      setTimeout(() => {
+        if (currentPathEl) currentPathEl.remove();
+      }, 600); // 时长与 CSS transition 一致
+    }
+
+    // 每 3.5 秒平滑切换一次
+    setInterval(switchApiPath, 3500);
+
+
+    /**
+     * 2. 动态星尘粒子效果保持
+     */
+    const canvas = document.getElementById('particleCanvas');
+    const ctx = canvas.getContext('2d');
+    let width, height, particles = [];
+    const connectionDistance = 110;
+
+    function getParticleCount() {
+      const desktopReferenceWidth = 1440;
+      const desktopReferenceHeight = 900;
+      const desktopReferenceArea = desktopReferenceWidth * desktopReferenceHeight;
+      const currentArea = window.innerWidth * window.innerHeight;
+      const areaScale = Math.sqrt(currentArea / desktopReferenceArea);
+      const mobileDensityFactor = window.innerWidth <= 768 ? 0.72 : 1;
+      const scaledCount = Math.round(100 * areaScale * mobileDensityFactor);
+
+      return Math.max(28, Math.min(100, scaledCount));
+    }
+
+    function initCanvas() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    }
+
+    class Particle {
+      constructor() {
+        this.x = Math.random() * width;
+        this.y = Math.random() * height;
+        this.size = Math.random() * 1.3 + 0.5;
+        this.speedX = (Math.random() - 0.5) * 0.25;
+        this.speedY = (Math.random() - 0.5) * 0.25;
+        this.opacity = Math.random() * 0.4 + 0.1;
+        this.fadeDirection = Math.random() > 0.5 ? 1 : -1;
+      }
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        this.opacity += 0.004 * this.fadeDirection;
+        if (this.opacity >= 0.6) this.fadeDirection = -1;
+        if (this.opacity <= 0.05) this.fadeDirection = 1;
+
+        if (this.x < 0) this.x = width;
+        if (this.x > width) this.x = 0;
+        if (this.y < 0) this.y = height;
+        if (this.y > height) this.y = 0;
+      }
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(176, 181, 192, ${this.opacity})`;
+        ctx.fill();
+      }
+    }
+
+    function initParticles() {
+      particles = [];
+      const particleCount = getParticleCount();
+      for (let i = 0; i < particleCount; i++) {
+        particles.push(new Particle());
+      }
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, width, height);
+      for (let i = 0; i < particles.length; i++) {
+        particles[i].update();
+        particles[i].draw();
+        for (let j = i; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          if (distance < connectionDistance) {
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            const lineOpacity = (1 - distance / connectionDistance) * 0.08;
+            ctx.strokeStyle = `rgba(176, 181, 192, ${lineOpacity})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(animate);
+    }
+
+    window.addEventListener('resize', () => {
+      initCanvas();
+      initParticles();
+    });
+
+    initCanvas();
+    initParticles();
+    animate();
+  </script>
+</body>
+
+</html>

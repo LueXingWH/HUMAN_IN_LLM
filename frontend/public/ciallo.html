@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ciallo～(∠・ω )⌒☆</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        margin: 0;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 50% 42%, rgba(255, 138, 0, 0.22), transparent 34vw),
+          radial-gradient(circle at 50% 120%, rgba(255, 94, 0, 0.16), transparent 45vw),
+          #120d08;
+        font-family:
+          "Segoe UI",
+          "Microsoft YaHei",
+          system-ui,
+          -apple-system,
+          sans-serif;
+      }
+
+      .ciallo {
+        margin: 0;
+        padding: 0 4vw;
+        color: #ff8a00;
+        font-size: clamp(40px, 8.5vw, 150px);
+        font-weight: 900;
+        letter-spacing: 0.02em;
+        text-align: center;
+        text-wrap: balance;
+        text-shadow:
+          0 0 18px rgba(255, 138, 0, 0.55),
+          0 0 64px rgba(255, 106, 0, 0.35);
+        animation: ciallo-breathe 3.2s ease-in-out infinite;
+      }
+
+      @keyframes ciallo-breathe {
+        0%,
+        100% {
+          transform: scale(1);
+          filter: brightness(1);
+        }
+        50% {
+          transform: scale(1.02);
+          filter: brightness(1.12);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .ciallo {
+          animation: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1 class="ciallo">Ciallo～(∠・ω )⌒☆</h1>
+  </body>
+</html>
